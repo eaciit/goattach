@@ -15,20 +15,7 @@ var defaultConfFile string
 var fileUri string
 var filePth string
 
-func load() error {
-	var err error = nil
-	if isConfigFileExist(fileUri) == false {
-		if err := createDir(); err != nil {
-			return err
-		}
-		if err := ioutil.WriteFile(fileUri, []byte(""), 0644); err != nil {
-			return err
-		}
-	}
-
-	return err
-}
-
+// createDir, create the directory for the conf file
 func createDir() error {
 	if err := os.MkdirAll(filePth, 0777); err != nil {
 		return err
@@ -36,6 +23,7 @@ func createDir() error {
 	return nil
 }
 
+// write, write the content to the file
 func write(s []byte, confFile string) error {
 	if err := ioutil.WriteFile(confFile, s, 0644); err != nil {
 		return err
@@ -43,11 +31,7 @@ func write(s []byte, confFile string) error {
 	return nil
 }
 
-func isConfigFileExist(confFile string) bool {
-	_, err := os.Stat(confFile)
-	return os.IsNotExist(err) == false
-}
-
+// template will form the server conf content
 func template(w WebApp) string {
 	strTemplate := "server {"
 
@@ -68,21 +52,20 @@ func template(w WebApp) string {
 	return strTemplate
 }
 
+// WriteConf is the main function for creating the conf file
 func WriteConf(w WebApp) string {
 	fileUri = w.Uri()
 	filePth = w.Path
-
-	if err := load(); err != nil {
-		return "Conf File Error: " + err.Error()
-	}
 
 	if err := isDefaultConfExist(w); err != true {
 		return "Default Conf File Error: file is not exist"
 	}
 
-	//fmt.Println(string(readDefaultConfFile(w)))
-
 	result := []byte(template(w))
+
+	if err := createDir(); err != nil {
+		return "Create Directory Error: " + err.Error()
+	}
 
 	if err := write(result, fileUri); err != nil {
 		return "Conf File Write Error: " + err.Error()
@@ -99,6 +82,7 @@ func WriteConf(w WebApp) string {
 	return ""
 }
 
+// RemoveConf is to remove the conf file
 func RemoveConf(w WebApp) string {
 	if err := os.Remove(fileUri); err != nil {
 		return "Error Remove the File: " + err.Error()
@@ -107,17 +91,21 @@ func RemoveConf(w WebApp) string {
 	return ""
 }
 
+// isDefaultConfExist will check the default conf file
 func isDefaultConfExist(w WebApp) bool {
 	_, err := os.Stat(filepath.Join(w.DefaultConfDirectory, defaultConfFileName))
 	defaultConfFile = filepath.Join(w.DefaultConfDirectory, defaultConfFileName)
 	return os.IsNotExist(err) == false
 }
 
+// isConfigFileAdded will check the default conf file
+// if the conf file already include in the default conf file, then no need to include the conf file
 func isConfigFileAdded(w WebApp) bool {
 	result := string(readDefaultConfFile(w))
 	return strings.Contains(result, fileUri)
 }
 
+// attachConfFile function is to attach the conf file into the default conf file
 func attachConfFile(w WebApp) error {
 
 	result := string(readDefaultConfFile(w))
@@ -142,6 +130,7 @@ F:
 	return nil
 }
 
+// readDefaultConfFile function is to read the default conf file
 func readDefaultConfFile(w WebApp) []byte {
 	result, err := ioutil.ReadFile(filepath.Join(w.DefaultConfDirectory, defaultConfFileName))
 
@@ -152,10 +141,13 @@ func readDefaultConfFile(w WebApp) []byte {
 	return result
 }
 
+// getIncludeTemplate function is to get the include formatting with the conf file name
 func getIncludeTemplate() string {
 	return "\n\tinclude\t" + fileUri
 }
 
+// reloadServer function is to reload the nginx server
+// to apply the new settings, the server need to reload first
 func reloadServer() error {
 	cmd := exec.Command("nginx -s reload")
 	if err := cmd.Run(); err != nil {
