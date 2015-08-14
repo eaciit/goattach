@@ -1,15 +1,12 @@
 package config
 
 import (
-	_ "fmt"
-	"strings"
-	//"github.com/eaciit/goattach/server/nginx"
 	"encoding/json"
+	_ "fmt"
 	"io/ioutil"
 	"path/filepath"
+	"strings"
 )
-
-const appsjson = "E:\\Workspace\\src\\github.com\\eaciit\\goattach\\config\\apps.json"
 
 // App Object for creating the server paramenter
 type App struct {
@@ -41,8 +38,8 @@ func (a *App) Uri() string {
 }
 
 // UpdateList will update the apps.json list
-func UpdateList(a App) error {
-	list, err := initApps()
+func UpdateList(a App, appsjson string) error {
+	list, err := initApps(appsjson)
 
 	if err != nil {
 		return err
@@ -60,7 +57,7 @@ F:
 
 	if !exist {
 		list.Apps = append(list.Apps, a)
-		if err := writeAppsJson(list); err != nil {
+		if err := writeAppsJson(list, appsjson); err != nil {
 			return err
 		}
 	}
@@ -69,8 +66,8 @@ F:
 }
 
 // RemoveList will remove the apps from apps.json list
-func RemoveList(a App) error {
-	list, err := initApps()
+func RemoveList(a App, appsjson string) error {
+	list, err := initApps(appsjson)
 
 	if err != nil {
 		return err
@@ -80,7 +77,7 @@ F:
 	for i := 0; i < len(list.Apps); i++ {
 		if strings.EqualFold(list.Apps[i].Appid, a.Appid) {
 			list.Apps = append(list.Apps[:i], list.Apps[i+1:]...)
-			if err := writeAppsJson(list); err != nil {
+			if err := writeAppsJson(list, appsjson); err != nil {
 				return err
 			}
 			break F
@@ -90,7 +87,7 @@ F:
 	return nil
 }
 
-func initApps() (AppList, error) {
+func initApps(appsjson string) (AppList, error) {
 
 	var list AppList
 
@@ -106,7 +103,7 @@ func initApps() (AppList, error) {
 	return list, err
 }
 
-func writeAppsJson(list AppList) error {
+func writeAppsJson(list AppList, appsjson string) error {
 	result, err := json.Marshal(list)
 	if err != nil {
 		return err

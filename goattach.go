@@ -3,14 +3,28 @@ package main
 import (
 	"flag"
 	"fmt"
-	config "github.com/eaciit/goattach/config"
+	cfg "github.com/eaciit/goattach/config"
 	nginx "github.com/eaciit/goattach/server/nginx"
+	"path/filepath"
+	"strings"
 )
 
 const (
-	NOK = "NOK"
-	OK  = "OK"
+	NOK           = "NOK"
+	OK            = "OK"
+	DefaultServer = "nginx"
 )
+
+var rserver cfg.Server
+var rdefault cfg.Default
+
+func init() {
+	var err error
+	rdefault, err = cfg.InitDefault()
+	if err != nil {
+		fmt.Println(NOK + " " + err.Error())
+	}
+}
 
 func main() {
 	attach := flag.Bool("attach", false, "command for attach the new configuration file")
@@ -19,82 +33,118 @@ func main() {
 	port := flag.Int("port", 0, "Port for the app")
 	sync := flag.Bool("sync", false, "Synchronize the server")
 	detach := flag.Bool("detach", false, "Detach the config file")
-	server := flag.String("webserver", "nginx", "Type of the server")
-	path := flag.String("path", NOK, "Path to put the configuration file")
+	server := flag.String("webserver", DefaultServer, "Type of the server")
+	path := flag.String("path", rdefault.Path, "Path to put the configuration file")
 	root := flag.String("root", "", "Root config")
+	config := flag.String("config", "", "Server config")
+	appconfig := flag.String("appconfig", "", "App config")
 
 	flag.Parse()
 
-	app := config.App{
+	app := cfg.App{
 		Alias: *alias,
 		Appid: *appId,
-		Path:  *path,
+		Path:  filepath.Clean(*path),
 		Port:  *port,
 		Root:  *root,
 	}
 
-	rserver, err := config.InitConfig(*server)
-
-	if err != nil {
-		panic(err)
+	if *config != "" {
+		rdefault.ConfigJson = filepath.Clean(*config)
 	}
 
-	if *attach {
-		if app.Appid == NOK || app.Alias == NOK || app.Port == 0 || app.Path == NOK {
-			fmt.Println(NOK + "Please provide the complete data")
+	if *appconfig != "" {
+		rdefault.AppConfigJson = filepath.Clean(*appconfig)
+	}
+
+	if !strings.EqualFold(*server, DefaultServer) {
+		rserver = initConfig(*server, rdefault.ConfigJson)
+	} else {
+		rserver = initConfig(DefaultServer, rdefault.ConfigJson)
+	}
+
+	success := true
+
+	if *attach && success {
+
+		if app.Appid == NOK || app.Alias == NOK || app.Port == 0 {
+			fmt.Println(NOK + " Please provide the complete data for attach")
 		} else {
 			switch *server {
 			case "nginx":
-				fmt.Println("Attach into nginx ")
+
 				if err := nginx.WriteConf(app, rserver); err != nil {
-					panic(err)
+					fmt.Println(NOK + " " + err.Error())
+					success = false
 				}
-				if err := config.UpdateList(app); err != nil {
-					panic(err)
+				if err := cfg.UpdateList(app, rdefault.AppConfigJson); err != nil {
+					fmt.Println(NOK + " " + err.Error())
+					success = false
+				}
+
+				if success {
+					fmt.Println(OK + " Attach into nginx ")
 				}
 			case "apache":
-				fmt.Println("Attach into apache")
+				fmt.Println(OK + " Attach into apache ")
 			default:
-				fmt.Println(NOK + " unrecognized server type ")
+				success = false
+				fmt.Println(NOK + " Unrecognized server type ")
 			}
 		}
 
 	}
 
-	if *detach {
-		if app.Appid == NOK || app.Path == NOK {
-			fmt.Println(NOK)
+	if *detach && success {
+		if app.Appid == NOK {
+			fmt.Println(NOK + " Please provide the complete data for detach")
 		} else {
 			switch *server {
 			case "nginx":
-				fmt.Println("Detach from nginx")
 
 				if err := nginx.RemoveConf(app, rserver); err != nil {
-					panic(err)
+					success = false
+					fmt.Println(NOK + " " + err.Error())
 				}
-				if err := config.RemoveList(app); err != nil {
-					panic(err)
+				if err := cfg.RemoveList(app, rdefault.AppConfigJson); err != nil {
+					success = false
+					fmt.Println(NOK + " " + err.Error())
 				}
 
+				if success {
+					fmt.Println(OK + " Detach from nginx")
+				}
 			case "apache":
-				fmt.Println("Detach from apache")
+
+				fmt.Println(OK + " Detach from apache")
 			default:
-				fmt.Println(NOK + " unrecognized server type ")
+
+				fmt.Println(NOK + " Unrecognized server type ")
 			}
 		}
 	}
 
-	if *sync {
+	if *sync && success {
 		switch *server {
 		case "nginx":
-			fmt.Println("Synchronize nginx server")
 			if err := nginx.Sync(rserver.Dosync); err != nil {
-				//panic(err)
+				fmt.Println(NOK + " Synchronize " + err.Error())
+			} else {
+				fmt.Println(OK + " Synchronize nginx server")
 			}
 		case "apache":
-			fmt.Println("Synchronize apache server")
+			fmt.Println(OK + " Synchronize apache server")
 		default:
-			fmt.Println(NOK + " unrecognized server type ")
+			fmt.Println(NOK + " Unrecognized server type ")
 		}
 	}
+}
+
+func initConfig(server string, configjson string) cfg.Server {
+	rserver, err := cfg.InitConfig(server, configjson)
+	if err != nil {
+		fmt.Println(NOK + " " + err.Error())
+	}
+
+	return rserver
 }

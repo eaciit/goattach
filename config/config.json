@@ -1,18 +1,20 @@
 {
-	"servers":[
-		{
-			"name": "nginx",
-			"dosync":"nginx -s reload",
-			"path": "E:\\Workspace\\src\\github.com\\eaciit\\goattach\\conffile",
-			"filename": "nginx.conf",
-			"template": "nginx-template.txt"
-		},
-		{
-			"name": "apache",
-			"dosync":"a",
-			"path": "b",
-			"filename": "c",
-			"template": ""
-		}
-	]
+	"goattach": {
+		"servers":[
+			{
+				"name": "nginx",
+				"dosync":"nginx -s reload",
+				"path": "E:\\Workspace\\src\\github.com\\eaciit\\goattach\\config",
+				"filename": "nginx.conf",
+				"template": "nginx-template.txt"
+			},
+			{
+				"name": "apache",
+				"dosync":"a",
+				"path": "b",
+				"filename": "c",
+				"template": ""
+			}
+		]		
+	}
 }

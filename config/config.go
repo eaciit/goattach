@@ -1,17 +1,18 @@
 package config
 
 import (
-	_ "fmt"
-	"strings"
-	//"github.com/eaciit/goattach/server/nginx"
 	"encoding/json"
+	_ "fmt"
 	"io/ioutil"
-	_ "path/filepath"
+	"path/filepath"
+	"strings"
 )
 
-const serverjson = "E:\\Workspace\\src\\github.com\\eaciit\\goattach\\config\\config.json"
-
 type Config struct {
+	Goattach GoAttach `json:"goattach"`
+}
+
+type GoAttach struct {
 	Servers []Server `json:"servers"`
 }
 
@@ -23,7 +24,12 @@ type Server struct {
 	Template string `json:"template"`
 }
 
-func InitConfig(server string) (Server, error) {
+// Uri get the full URI of the configuration file
+func (s *Server) Uri() string {
+	return filepath.Join(s.Path, s.Filename)
+}
+
+func InitConfig(server string, serverjson string) (Server, error) {
 	var rserver Server
 	var c Config
 
@@ -36,9 +42,9 @@ func InitConfig(server string) (Server, error) {
 		return Server{}, err
 	}
 
-	for i := 0; i < cap(c.Servers); i++ {
-		if strings.EqualFold(server, c.Servers[i].Name) {
-			rserver := c.Servers[i]
+	for i := 0; i < cap(c.Goattach.Servers); i++ {
+		if strings.EqualFold(server, c.Goattach.Servers[i].Name) {
+			rserver := c.Goattach.Servers[i]
 			_ = rserver
 			return rserver, err
 		}

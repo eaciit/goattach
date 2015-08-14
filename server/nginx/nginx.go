@@ -3,7 +3,7 @@ package nginx
 import (
 	"errors"
 	_ "fmt"
-	. "github.com/eaciit/goattach/config"
+	config "github.com/eaciit/goattach/config"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -17,7 +17,7 @@ const NOK = "NOK"
 const OK = "OK"
 
 // createDir, create the directory for the conf file
-func createDir(a App) error {
+func createDir(a config.App) error {
 	if err := os.MkdirAll(a.Path, 0777); err != nil {
 		return err
 	}
@@ -32,7 +32,7 @@ func write(s []byte, confFile string) error {
 	return nil
 }
 
-func createTemplate(s Server, a App) string {
+func createTemplate(s config.Server, a config.App) string {
 	var result string
 	r, err := ioutil.ReadFile(filepath.Join("./template", s.Template))
 
@@ -50,9 +50,9 @@ func createTemplate(s Server, a App) string {
 }
 
 // WriteConf is the main function for creating the conf file
-func WriteConf(a App, s Server) error {
+func WriteConf(a config.App, s config.Server) error {
 	if err := isDefaultConfExist(s); err != true {
-		return errors.New(NOK + "Default Conf File Error: file is not exist")
+		return errors.New(NOK + " Default Conf File Error: file is not exist")
 	}
 	result := []byte(createTemplate(s, a))
 
@@ -72,7 +72,7 @@ func WriteConf(a App, s Server) error {
 }
 
 // RemoveConf is to remove the conf file
-func RemoveConf(a App, s Server) error {
+func RemoveConf(a config.App, s config.Server) error {
 	if err := os.Remove(a.Uri()); err != nil {
 		return err //return NOK + "Error Remove the File: " + err.Error()
 	}
@@ -83,20 +83,20 @@ func RemoveConf(a App, s Server) error {
 }
 
 // isDefaultConfExist will check the default conf file
-func isDefaultConfExist(s Server) bool {
+func isDefaultConfExist(s config.Server) bool {
 	_, err := os.Stat(filepath.Join(s.Path, s.Filename))
 	return os.IsNotExist(err) == false
 }
 
 // isConfigFileAdded will check the default conf file
 // if the conf file already include in the default conf file, then no need to include the conf file
-func isConfigFileAdded(a App, s Server) bool {
+func isConfigFileAdded(a config.App, s config.Server) bool {
 	result := string(readDefaultConfFile(s))
 	return strings.Contains(result, a.Uri())
 }
 
 // attachConfFile function is to attach the conf file into the default conf file
-func attachConfFile(a App, s Server) error {
+func attachConfFile(a config.App, s config.Server) error {
 
 	result := string(readDefaultConfFile(s))
 	lines := strings.Split(result, "\n")
@@ -126,7 +126,7 @@ func attachConfFile(a App, s Server) error {
 	return nil
 }
 
-func detachConfFile(a App, s Server) error {
+func detachConfFile(a config.App, s config.Server) error {
 
 	result := string(readDefaultConfFile(s))
 	lines := strings.Split(result, "\n")
@@ -157,7 +157,7 @@ func detachConfFile(a App, s Server) error {
 }
 
 // readDefaultConfFile function is to read the default conf file
-func readDefaultConfFile(s Server) []byte {
+func readDefaultConfFile(s config.Server) []byte {
 	result, err := ioutil.ReadFile(filepath.Join(s.Path, s.Filename))
 
 	if err != nil {
@@ -168,7 +168,7 @@ func readDefaultConfFile(s Server) []byte {
 }
 
 // getIncludeTemplate function is to get the include formatting with the conf file name
-func getIncludeTemplate(a App) string {
+func getIncludeTemplate(a config.App) string {
 	return "\n\tinclude\t" + a.Uri()
 }
 
